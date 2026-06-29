@@ -5,38 +5,40 @@ import platform
 import os
 import shutil
 
-thelibFolder = os.path.dirname(os.path.realpath(__file__))
-requirementPath = thelibFolder + '/requirements.txt'
-all_requirements = []
-if os.path.isfile(requirementPath):
-    with open(requirementPath) as f:
-        all_requirements = [line.strip() for line in f.read().splitlines() if line.strip()]
-
 def read_file(file):
    with open(file) as f:
         return f.read()
 
 long_description = read_file("README.md")
 
-# TensorFlow is now an *optional* dependency: only the original (TF) emulators
-# need it. The JAX training backend (`cosmopower.jax`) does not. This also makes
-# the package installable on platforms without a TF wheel (e.g. Windows).
+# Backends are OPTIONAL extras so each can be installed without the other:
+#   pip install -e .[jax]   -> JAX/Equinox training backend (cosmopower.jax), no TF
+#   pip install -e .[tf]    -> original TensorFlow emulators + likelihoods
+# The base install is intentionally minimal (no framework), so a JAX-only user
+# pulls neither TensorFlow nor the docs/dev tooling. This also makes the package
+# installable on platforms without a TF wheel (e.g. Windows / Python 3.12).
+
 # `platform.machine()` is used instead of `os.uname()` (the latter is missing on
 # Windows).
 if 'arm' in platform.machine().lower():
     tensorflow = 'tensorflow-metal'
 else:
     tensorflow = 'tensorflow<2.14'
-tf_requirements = [tensorflow, 'tensorflow_probability<0.22']
 
-# base install requirements = everything in requirements.txt that is NOT TensorFlow
-install_requires = [r for r in all_requirements if 'tensorflow' not in r.lower()]
+# minimal shared runtime dependency
+install_requires = ['numpy']
 
 extras_require = {
-    # original TensorFlow emulators + likelihoods
-    'tf': tf_requirements,
     # JAX/Equinox training backend (cosmopower.jax)
     'jax': ['jax', 'jaxlib', 'equinox>=0.11', 'optax>=0.2'],
+    # original TensorFlow emulators + likelihoods, plus their support libs
+    # (training progress bar, PCA, sampling, model download, plotting)
+    'tf': [tensorflow, 'tensorflow_probability<0.22',
+           'scikit-learn', 'tqdm', 'gdown', 'pyDOE', 'matplotlib'],
+    # documentation site
+    'docs': ['mkdocs-material', 'mkdocstrings'],
+    # test suite
+    'dev': ['pytest'],
 }
 
 setup(classifiers=['Operating System :: OS Independent',

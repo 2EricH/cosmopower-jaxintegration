@@ -379,6 +379,7 @@ def train(
         for epoch in range(int(max_epochs[stage])):
             key, skey = jax.random.split(key)
             order = jax.random.permutation(skey, n_tr)
+            epoch_losses = []
             for i in range(0, n_tr, bs):
                 idx = order[i:i + bs]
                 model, opt_state, l = step(model, opt_state, x_tr[idx], y_tr[idx])

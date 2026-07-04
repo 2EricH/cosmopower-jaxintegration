@@ -367,7 +367,7 @@ def train(
 
     best_model = model
     best_val = float(_eval_loss(model, x_val, y_val))
-    history = {"val_loss": [], "best_val_loss": best_val}
+    history = {"train_loss": [], "val_loss": [], "best_val_loss": best_val}
 
     for stage, lr in enumerate(learning_rates):
         # swap the learning rate, keep Adam moments warm
@@ -381,10 +381,13 @@ def train(
             order = jax.random.permutation(skey, n_tr)
             for i in range(0, n_tr, bs):
                 idx = order[i:i + bs]
-                model, opt_state, _ = step(model, opt_state, x_tr[idx], y_tr[idx])
+                model, opt_state, l = step(model, opt_state, x_tr[idx], y_tr[idx])
+                epoch_losses.append(l)
+
 
             val = float(_eval_loss(model, x_val, y_val))
             history["val_loss"].append(val)
+            history["train_loss"].append(float(jnp.mean(jnp.stack(epoch_losses))))
 
             if val < best_val:
                 best_val = val
